@@ -76,9 +76,11 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
 
     uint256 public totalResult;
 
+    mapping(address => uint256) private _voiceCreditBalance; // Variable Voice Credit Balance
+
     /** A-MACI */
     uint256[8] private _zeros0;
-    uint256 public voiceCreditBalance;
+    uint256 public voiceCreditBalance; // each individual user balance
 
     uint256 public dmsgChainLength;
     mapping(uint256 => uint256) public dmsgHashes;
@@ -212,39 +214,39 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
     //     return (stateIdx, voiceCreditBalance);
     // }
 
-    function signUp(
+function signUp(
         PubKey memory _pubKey,
-        bytes memory _data
+        bytes memory _data,
+        uint256 _voiceCreditBalance // Variable Voice Credit Balance
     ) public atPeriod(Period.Voting) {
         // "full"
-        require(numSignUps < _maxLeavesCount, "2");
+        require(numSignUps < _maxLeavesCount, "State tree full");
         // "3"
         require(
             _pubKey.x < SNARK_SCALAR_FIELD && _pubKey.y < SNARK_SCALAR_FIELD,
             "3"
         );
 
-        (bool valid, uint256 _balance) = gateKeeper.register(msg.sender, _data);
-        _balance;
-
-        // "401"
-        require(valid, "4");
+        (bool valid, ) = gateKeeper.register(msg.sender, _data);
+        require(valid, "Invalid registration");
 
         uint256 stateLeaf = hash2(
             [
-                hash5([_pubKey.x, _pubKey.y, voiceCreditBalance, 0, 0]),
+                hash5([_pubKey.x, _pubKey.y, _voiceCreditBalance, 0, 0]),
                 _zeros0[1] // hash5([0, 0, 0, 0, 0])
             ]
         );
         uint256 stateIndex = numSignUps;
         _stateEnqueue(stateLeaf);
 
-        // _discard_stateIdxInc[msg.sender] = numSignUps;
+       // _discard_stateIdxInc[msg.sender] = numSignUps;
         // voiceCreditBalance[stateIndex] = balance;
+        _voiceCreditBalance[msg.sender] = _voiceCreditBalance;
         singuped[_pubKey.x] = numSignUps;
 
-        emit SignUp(stateIndex, _pubKey, voiceCreditBalance);
+        emit SignUp(stateIndex, _pubKey, _voiceCreditBalance);
     }
+
 
     function publishDeactivateMessage(
         Message memory _message,
@@ -298,8 +300,7 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
         uint256 newDeactivateRoot,
         uint256[8] memory _proof
     ) public atPeriod(Period.Voting) {
-        // "all messages have been processed"
-        require(_processedDMsgCount < dmsgChainLength, "6");
+        require(_processedDMsgCount < dmsgChainLength, "All deactivation messages processed");
 
         uint256 batchSize = parameters.messageBatchSize;
         require(size <= batchSize);
@@ -325,7 +326,6 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
         }
         input[2] = dmsgHashes[batchStartIndex]; // batchStartHash
         input[3] = dmsgHashes[batchEndIdx]; // batchEndHash
-
         input[4] = currentDeactivateCommitment;
         input[5] = newDeactivateCommitment;
         input[6] = _stateRootByDMsg[batchEndIdx];
@@ -338,8 +338,7 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
         );
 
         bool isValid = verifier.verify(_proof, vk, inputHash);
-        // "invalid proof"
-        require(isValid, "7");
+        require(isValid, "Invalid proof");
 
         // Proof success, update commitment and progress.
         currentDeactivateCommitment = newDeactivateCommitment;
@@ -355,13 +354,9 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
         require(!nullifiers[_nullifier]);
         nullifiers[_nullifier] = true;
 
-        // "full"
-        require(numSignUps < _maxLeavesCount, "2");
-        // "MACI: _pubKey values should be less than the snark scalar field"
-        require(
-            _pubKey.x < SNARK_SCALAR_FIELD && _pubKey.y < SNARK_SCALAR_FIELD,
-            "3"
-        );
+        require(numSignUps < _maxLeavesCount, "Maximum sign-ups reached");
+                // "MACI: _pubKey values should be less than the snark scalar field"
+        require(_pubKey.x < SNARK_SCALAR_FIELD && _pubKey.y < SNARK_SCALAR_FIELD, "Invalid public key");
 
         uint256[] memory input = new uint256[](7);
         input[0] = dnodes[0]; // newDeactivateRoot
@@ -372,16 +367,16 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
         input[5] = _d[2];
         input[6] = _d[3];
 
-        uint256 inputHash = uint256(sha256(abi.encodePacked(input))) %
-            SNARK_SCALAR_FIELD;
+        uint256 inputHash = uint256(sha256(abi.encodePacked(input))) % SNARK_SCALAR_FIELD;
 
         VerifyingKey memory vk = vkRegistry.getNewkeyVkBy(
             parameters.stateTreeDepth
         );
 
         bool isValid = verifier.verify(_proof, vk, inputHash);
-        // "invalid proof"
-        require(isValid, "7");
+        require(isValid, "Invalid proof");
+        // _discard_stateIdxInc[msg.sender] = numSignUps;
+        singuped[_pubKey.x] = numSignUps;
 
         uint256 stateLeaf = hash2(
             [
@@ -392,10 +387,6 @@ contract MACI is DomainObjs, SnarkCommon, Ownable {
         uint256 stateIndex = numSignUps;
         _stateEnqueue(stateLeaf);
 
-        // _discard_stateIdxInc[msg.sender] = numSignUps;
-        singuped[_pubKey.x] = numSignUps;
-
-        emit SignUp(stateIndex, _pubKey, voiceCreditBalance);
         emit SignUpActive(stateIndex, _d);
     }
 

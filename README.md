@@ -40,6 +40,8 @@ Here's a comprehensive solution:
 
 5. **Post-Vote Verification Algorithm**: Develop a post-vote verification algorithm that checks for suspicious voting patterns and ensures the accuracy of the voting outcome.
 
+By following this implementation guide in the [./implementation.md ](https://github.com/kamalbuilds/variable-voice-credit-maci-solution/blob/main/implementation.md) and incorporating the necessary components, we can enhance the A-MACI system to support variable Voice Credits while maintaining anonymity and anti-collusion features. Remember to thoroughly test the system, monitor its performance, and continuously improve it based on user feedback and evolving requirements.
+
 ### Conclusion
 
 The proposed solution enhances the A-MACI system by allowing variable Voice Credits while maintaining anonymity and anti-collusion features. By implementing the components outlined above, administrators can create a more nuanced and effective voting system that rewards voters based on their contributions and reputation. The different levels of rewards cater to varying levels of complexity and functionality, ensuring that the solution can be tailored to meet specific needs and use cases.

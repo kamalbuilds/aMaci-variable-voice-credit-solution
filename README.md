@@ -1,6 +1,6 @@
-# variable-voice-credit-maci-solution
+# amaci-variable-voice-credit-solution
 
-To enhance the A-MACI system by allowing variable Voice Credits, we can introduce a new mechanism that ensures anonymity and anti-collusion while accommodating voters with different Voice Credits.
+To enhance the A-MACI system by allowing variable Voice Credits, we are introducing a new mechanism that ensures anonymity and anti-collusion while accommodating voters with different Voice Credits.
 
 Here's a comprehensive solution:
 

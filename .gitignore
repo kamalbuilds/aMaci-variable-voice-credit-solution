@@ -1,0 +1,9 @@
+.DS_Store
+node_modules
+.vscode
+
+_old
+ptau
+build*
+
+artifacts
